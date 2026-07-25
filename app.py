@@ -76,8 +76,9 @@ with st.sidebar:
 # ────────────────────────── SIDEBAR ──────────────────────────
 with st.sidebar:
     st.header("Parametri globali")
-    peso_kg = st.number_input("Peso corridore (kg)", 40.0, 100.0, 68.0, 0.5)
-    rolling_s = st.number_input("Media mobile (secondi)", 1, 300, 30, 1)
+    peso_kg = st.number_input("Peso corridore (kg)", 40.0, 100.0, 72.0, 0.5)
+    rolling_s = st.number_input("Media mobile (secondi)", 1, 300, 3, 1,
+                                help="Default 3 sec — è quello che Gaia usa in App4.3.")
 
     st.subheader("Soglie W/kg")
     modo_soglie = st.radio(
@@ -343,13 +344,11 @@ if storage.is_enabled():
                         storage.delete_analisi(cor_sel, entry["id"])
                         st.rerun()
 
-# ────────────────────────── HELP ──────────────────────────
-with st.expander("ℹ️ Come funziona / cosa cambia rispetto ad App4.3"):
-    st.markdown("""
-- **Batch soglie**: metti l'intero range 3.5→8 W/kg in un colpo, non serve creare 10 parameter set.
-- **Multi-file**: carica 30 file `.fit` insieme, li processa tutti.
-- **Nome corridore dal filename**: se chiami il file `sanremo2025__Pogacar.fit`, il corridore diventa "Pogacar".
-- **Preset gare**: se le coordinate dei 4 tratti sono in `presets_gare.json`, si caricano da sole.
-- **Output**: CSV o Excel con sheet per corridore + una sheet master aggregata (perfetta per la tesi).
-- **Metriche**: per ogni tratto × soglia calcolo `n_superamenti` (numero di volte che passa sopra soglia), `secondi_sopra`, `media_potenza_w`, `media_wkg`, `durata_tratto_s`.
-""")
+# ────────────────────────── GUIDA ──────────────────────────
+st.divider()
+with st.expander("📖 Guida di utilizzo (clicca per aprire)", expanded=False):
+    try:
+        with open("guida.md", encoding="utf-8") as f:
+            st.markdown(f.read())
+    except FileNotFoundError:
+        st.info("Guida non trovata (file guida.md).")
