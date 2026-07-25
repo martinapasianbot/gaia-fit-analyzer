@@ -79,6 +79,10 @@ with st.sidebar:
     peso_kg = st.number_input("Peso corridore (kg)", 40.0, 100.0, 72.0, 0.5)
     rolling_s = st.number_input("Media mobile (secondi)", 1, 300, 3, 1,
                                 help="Default 3 sec — è quello che Gaia usa in App4.3.")
+    min_run_s = st.number_input("Durata minima superamento (sec)", 1, 60, 3, 1,
+                                help="Un superamento è considerato tale solo se dura almeno "
+                                     "questo numero di secondi consecutivi sopra soglia. "
+                                     "Filtra gli spike brevi (default 3).")
 
     st.subheader("Soglie W/kg")
     modo_soglie = st.radio(
@@ -200,6 +204,7 @@ if st.button("🚀 Analizza tutto", type="primary", disabled=not uploads):
                 tratti=tratti,
                 soglie_wkg=soglie,
                 rolling_window_s=int(rolling_s),
+                min_run_seconds=int(min_run_s),
             )
             if df.empty:
                 st.warning(f"⚠️ {up.name}: nessun record valido nel file.")

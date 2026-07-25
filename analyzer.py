@@ -80,12 +80,16 @@ def analyze_fit(
     tratti: list[Tratto],
     soglie_wkg: Iterable[float],
     rolling_window_s: int = 30,
+    min_run_seconds: int = 3,
 ) -> pd.DataFrame:
     """
     Ritorna un DataFrame con una riga per (tratto, soglia_wkg):
         corridore, gara, anno, tratto, soglia_wkg,
         n_superamenti, secondi_sopra, media_potenza_w, media_wkg,
         durata_tratto_s, campioni_tratto
+
+    min_run_seconds: solo i run consecutivi sopra soglia di durata >= min_run_seconds
+    vengono contati (n_superamenti e secondi_sopra). Spike più brevi vengono ignorati.
     """
     df = _fit_to_records_df(fit_bytes)
     if df.empty:
@@ -120,11 +124,16 @@ def analyze_fit(
         wkg = sub["wkg_rolling"].to_numpy()
 
         for s in soglie:
-            over = wkg > s
-            # n_superamenti = numero di run consecutivi sopra soglia (rising edges)
-            edges = np.diff(over.astype(int), prepend=0)
-            n_sup = int((edges == 1).sum())
-            sec_sopra = int(over.sum())  # 1 sample/s standard .fit
+            over = (wkg > s).astype(int)
+            # trova i run consecutivi (start/end index) di valori sopra soglia
+            edges = np.diff(over, prepend=0, append=0)
+            starts = np.where(edges == 1)[0]
+            ends = np.where(edges == -1)[0]
+            run_lengths = ends - starts  # secondi (1 sample/s)
+            # tieni solo i run con durata >= min_run_seconds
+            valid_mask = run_lengths >= int(min_run_seconds)
+            n_sup = int(valid_mask.sum())
+            sec_sopra = int(run_lengths[valid_mask].sum())
             out_rows.append({
                 "corridore": corridore, "gara": gara, "anno": anno,
                 "tratto": t.nome, "soglia_wkg": s,

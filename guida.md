@@ -25,6 +25,7 @@ Setta una volta e valgono per tutti i file che caricherai:
   - *Custom*: le scrivi tu separate da virgola
 - **Formato coordinate**: gradi decimali (es. `45.6789`) o semicircles (formato interno `.fit`)
 - **Tolleranza GPS (semicircles)** — default `15` (come App4.3)
+- **Durata minima superamento (sec)** — default `3`. Un superamento viene contato solo se dura almeno tot secondi consecutivi sopra soglia. Filtra gli spike brevi (picchi di 1-2 sec che non sono veri superamenti fisiologici).
 
 ### 2. Metadata gara
 
