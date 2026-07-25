@@ -19,6 +19,36 @@ from analyzer import Tratto, analyze_fit, default_soglie, deg_to_semi, semi_to_d
 
 st.set_page_config(page_title="FIT Analyzer - Tesi Gaia", page_icon="🚴", layout="wide")
 
+
+def _check_login() -> bool:
+    """Login semplice via st.secrets['users']. Se non ci sono secrets, l'app è aperta."""
+    try:
+        users = st.secrets.get("users", {})
+    except Exception:
+        users = {}
+    if not users:
+        return True
+    if st.session_state.get("auth_ok"):
+        return True
+    st.title("🚴 FIT Analyzer")
+    st.write("Login richiesto.")
+    with st.form("login"):
+        u = st.text_input("Username")
+        p = st.text_input("Password", type="password")
+        ok = st.form_submit_button("Entra")
+    if ok:
+        if users.get(u) == p:
+            st.session_state["auth_ok"] = True
+            st.session_state["auth_user"] = u
+            st.rerun()
+        else:
+            st.error("Credenziali non valide.")
+    return False
+
+
+if not _check_login():
+    st.stop()
+
 st.title("🚴 FIT Analyzer - Tesi Gaia")
 st.caption("Carica uno o più file .fit, calcola in un colpo TUTTE le soglie W/kg per TUTTI i tratti.")
 
@@ -166,6 +196,63 @@ if "master" in st.session_state:
     st.header("4. Risultati")
     df = st.session_state["master"]
     st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # ───────── GRAFICI ─────────
+    st.header("5. Grafici")
+    tab_g1, tab_g2, tab_g3, tab_g4 = st.tabs([
+        "Superamenti per soglia",
+        "Secondi sopra soglia",
+        "Confronto corridori",
+        "Confronto tratti",
+    ])
+
+    with tab_g1:
+        st.caption("Numero di superamenti soglia per ogni tratto, al variare della soglia W/kg.")
+        # una serie per tratto, per corridore selezionato
+        c1, c2 = st.columns(2)
+        cor_sel = c1.selectbox("Corridore", sorted(df["corridore"].unique()), key="g1_cor")
+        gara_sel_g = c2.selectbox("Gara-Anno", sorted(df.assign(g=df["gara"]+" "+df["anno"].astype(str))["g"].unique()), key="g1_g")
+        gara_name, anno_name = gara_sel_g.rsplit(" ", 1)
+        sub = df[(df["corridore"] == cor_sel) & (df["gara"] == gara_name) & (df["anno"] == int(anno_name))]
+        if not sub.empty:
+            pivot = sub.pivot_table(index="soglia_wkg", columns="tratto", values="n_superamenti", aggfunc="sum")
+            st.line_chart(pivot, height=400)
+            st.bar_chart(pivot, height=400)
+        else:
+            st.info("Nessun dato per la selezione.")
+
+    with tab_g2:
+        st.caption("Secondi totali sopra soglia per tratto.")
+        c1, c2 = st.columns(2)
+        cor_sel2 = c1.selectbox("Corridore", sorted(df["corridore"].unique()), key="g2_cor")
+        gara_sel2 = c2.selectbox("Gara-Anno", sorted(df.assign(g=df["gara"]+" "+df["anno"].astype(str))["g"].unique()), key="g2_g")
+        gara_name2, anno_name2 = gara_sel2.rsplit(" ", 1)
+        sub2 = df[(df["corridore"] == cor_sel2) & (df["gara"] == gara_name2) & (df["anno"] == int(anno_name2))]
+        if not sub2.empty:
+            pivot2 = sub2.pivot_table(index="soglia_wkg", columns="tratto", values="secondi_sopra", aggfunc="sum")
+            st.area_chart(pivot2, height=400)
+        else:
+            st.info("Nessun dato per la selezione.")
+
+    with tab_g3:
+        st.caption("Confronto tra corridori sulla stessa soglia W/kg.")
+        c1, c2 = st.columns(2)
+        soglia_sel = c1.selectbox("Soglia W/kg", sorted(df["soglia_wkg"].unique()), key="g3_s")
+        metrica = c2.selectbox("Metrica", ["n_superamenti", "secondi_sopra", "media_wkg"], key="g3_m")
+        sub3 = df[df["soglia_wkg"] == soglia_sel]
+        if not sub3.empty:
+            pivot3 = sub3.pivot_table(index="corridore", columns="tratto", values=metrica, aggfunc="sum")
+            st.bar_chart(pivot3, height=400)
+            st.dataframe(pivot3, use_container_width=True)
+        else:
+            st.info("Nessun dato per la selezione.")
+
+    with tab_g4:
+        st.caption("Confronto tra tratti (media dei corridori) per soglia.")
+        metrica2 = st.selectbox("Metrica", ["n_superamenti", "secondi_sopra", "media_wkg"], key="g4_m")
+        pivot4 = df.pivot_table(index="soglia_wkg", columns="tratto", values=metrica2, aggfunc="mean")
+        st.line_chart(pivot4, height=400)
+        st.dataframe(pivot4.round(2), use_container_width=True)
 
     # download CSV + Excel
     csv = df.to_csv(index=False).encode("utf-8")
