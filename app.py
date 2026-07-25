@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 
 from analyzer import Tratto, analyze_fit, default_soglie, deg_to_semi, semi_to_deg
+import storage
 
 st.set_page_config(page_title="FIT Analyzer - Tesi Gaia", page_icon="🚴", layout="wide")
 
@@ -51,6 +52,26 @@ if not _check_login():
 
 st.title("🚴 FIT Analyzer - Tesi Gaia")
 st.caption("Carica uno o più file .fit, calcola in un colpo TUTTE le soglie W/kg per TUTTI i tratti.")
+
+# ────────────────────────── ARCHIVIO SIDEBAR ──────────────────────────
+with st.sidebar:
+    st.divider()
+    if storage.is_enabled():
+        st.subheader("📚 Archivio")
+        try:
+            corridori_in_archivio = storage.list_corridori()
+            st.caption(f"{len(corridori_in_archivio)} corridori salvati")
+            with st.expander("Vedi elenco"):
+                for c in corridori_in_archivio:
+                    st.write(f"• {c}")
+            auto_save = st.checkbox("Salva automaticamente le analisi in archivio", value=True)
+        except Exception as e:
+            st.warning(f"Archivio non raggiungibile: {e}")
+            auto_save = False
+    else:
+        st.info("Archivio non configurato (aggiungi `[storage]` nei secrets).")
+        auto_save = False
+    st.session_state["auto_save"] = auto_save
 
 # ────────────────────────── SIDEBAR ──────────────────────────
 with st.sidebar:
@@ -192,6 +213,18 @@ if st.button("🚀 Analizza tutto", type="primary", disabled=not uploads):
         master = pd.concat(all_dfs, ignore_index=True)
         st.session_state["master"] = master
 
+        # auto-save in archivio (una entry per corridore per analisi)
+        if st.session_state.get("auto_save") and storage.is_enabled():
+            saved = 0
+            for cor, sub in master.groupby("corridore"):
+                try:
+                    storage.save_analisi(cor, sub, note=f"upload {datetime.now():%Y-%m-%d %H:%M}")
+                    saved += 1
+                except Exception as e:
+                    st.warning(f"❌ archivio '{cor}': {e}")
+            if saved:
+                st.success(f"💾 Salvato in archivio: {saved} corridore/i")
+
 if "master" in st.session_state:
     st.header("4. Risultati")
     df = st.session_state["master"]
@@ -276,6 +309,39 @@ if "master" in st.session_state:
         file_name=f"analisi_{datetime.now():%Y%m%d_%H%M}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+# ────────────────────────── ARCHIVIO ──────────────────────────
+if storage.is_enabled():
+    st.divider()
+    st.header("📚 Cronologia archivio")
+    st.caption("Tutte le analisi salvate. Filtro per corridore, apri per vedere i dati.")
+    try:
+        corridori = storage.list_corridori()
+    except Exception as e:
+        st.warning(f"Archivio non raggiungibile: {e}")
+        corridori = []
+
+    if not corridori:
+        st.info("Archivio vuoto: fai una prima analisi con auto-save attivo.")
+    else:
+        cor_sel = st.selectbox("Corridore", corridori, key="arch_cor")
+        data = storage.load_corridore(cor_sel)
+        if data:
+            analisi = data.get("analisi", [])
+            st.caption(f"**{len(analisi)}** analisi archiviate per **{cor_sel}**")
+            for entry in reversed(analisi):
+                header = f"{entry.get('gara','?')} {entry.get('anno','?')} — {entry.get('creata_il','')} — id `{entry['id']}`"
+                with st.expander(header):
+                    df_e = storage.analisi_as_df(entry)
+                    st.dataframe(df_e, use_container_width=True, hide_index=True)
+                    csv_e = df_e.to_csv(index=False).encode("utf-8")
+                    c1, c2 = st.columns([1, 1])
+                    c1.download_button("⬇️ Scarica CSV", csv_e,
+                                       file_name=f"{cor_sel}_{entry['id']}.csv",
+                                       mime="text/csv", key=f"dl_{entry['id']}")
+                    if c2.button("🗑️ Elimina", key=f"rm_{entry['id']}"):
+                        storage.delete_analisi(cor_sel, entry["id"])
+                        st.rerun()
 
 # ────────────────────────── HELP ──────────────────────────
 with st.expander("ℹ️ Come funziona / cosa cambia rispetto ad App4.3"):
