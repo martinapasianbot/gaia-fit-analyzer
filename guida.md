@@ -25,7 +25,7 @@ Setta una volta e valgono per tutti i file che caricherai:
   - *Custom*: le scrivi tu separate da virgola
 - **Formato coordinate**: gradi decimali (es. `45.6789`) o semicircles (formato interno `.fit`)
 - **Tolleranza GPS (semicircles)** — default `15` (come App4.3)
-- **Durata minima superamento (sec)** — default `3`. **Riguarda SOLO il conteggio dei superamenti** (`n_superamenti`), non i secondi sopra soglia. Un superamento viene contato solo se dura almeno tot secondi consecutivi sopra soglia (filtra gli spike brevi che non sono veri superamenti fisiologici). I `secondi_sopra` invece includono sempre tutto il tempo sopra soglia (allineato ad App4.3).
+- **Durata minima superamento (sec)** — default `3`. Filtra i run brevi da ENTRAMBE le metriche: sia `n_superamenti` sia `secondi_sopra` considerano solo i run consecutivi >= tot secondi. Se cambi questo valore, cambiano di conseguenza sia il numero di superamenti sia i secondi totali.
 
 ### 2. Metadata gara
 
