@@ -130,10 +130,10 @@ def analyze_fit(
             starts = np.where(edges == 1)[0]
             ends = np.where(edges == -1)[0]
             run_lengths = ends - starts  # secondi (1 sample/s)
-            # tieni solo i run con durata >= min_run_seconds
-            valid_mask = run_lengths >= int(min_run_seconds)
-            n_sup = int(valid_mask.sum())
-            sec_sopra = int(run_lengths[valid_mask].sum())
+            # secondi_sopra = tutti i secondi sopra soglia (come App4.3, nessun filtro)
+            sec_sopra = int(over.sum())
+            # n_superamenti = solo run con durata >= min_run_seconds (filtra spike brevi)
+            n_sup = int((run_lengths >= int(min_run_seconds)).sum())
             out_rows.append({
                 "corridore": corridore, "gara": gara, "anno": anno,
                 "tratto": t.nome, "soglia_wkg": s,
