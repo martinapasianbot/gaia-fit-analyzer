@@ -82,8 +82,7 @@ with st.sidebar:
     min_run_s = st.number_input("Durata minima superamento (sec)", 0, 60, 0, 1,
                                 help="Un superamento viene contato solo se dura almeno "
                                      "questo numero di secondi consecutivi. "
-                                     "Con 0 = comportamento identico ad App4.3 (nessun filtro). "
-                                     "Con 3 = filtra gli spike < 3 sec.")
+                                     "Default 0 = nessun filtro. Alza a 3 per filtrare spike brevi.")
 
     st.subheader("Soglie W/kg")
     modo_soglie = st.radio(
