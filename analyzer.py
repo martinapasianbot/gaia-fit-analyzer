@@ -122,6 +122,7 @@ def analyze_fit(
         media_wkg = media_pw / peso_kg
 
         wkg = sub["wkg_rolling"].to_numpy()
+        ts = sub["timestamp"].to_numpy()  # numpy datetime64
 
         for s in soglie:
             over = (wkg > s).astype(int)
@@ -129,11 +130,16 @@ def analyze_fit(
             edges = np.diff(over, prepend=0, append=0)
             starts = np.where(edges == 1)[0]
             ends = np.where(edges == -1)[0]
-            run_lengths = ends - starts  # secondi (1 sample/s)
+            # duration di ogni run = (timestamp ultimo sample - timestamp primo sample).total_seconds()
+            # metodo identico ad App4.3: se run ha 1 solo sample → duration = 0
+            durations = np.array([
+                (ts[e - 1] - ts[st]) / np.timedelta64(1, "s") if (e - st) > 1 else 0.0
+                for st, e in zip(starts, ends)
+            ], dtype=float)
             # filtro: contano solo i run di durata >= min_run_seconds
-            valid = run_lengths >= int(min_run_seconds)
+            valid = durations >= float(min_run_seconds)
             n_sup = int(valid.sum())
-            sec_sopra = int(run_lengths[valid].sum())
+            sec_sopra = int(durations[valid].sum())
             out_rows.append({
                 "corridore": corridore, "gara": gara, "anno": anno,
                 "tratto": t.nome, "soglia_wkg": s,

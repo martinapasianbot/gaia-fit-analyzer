@@ -79,10 +79,11 @@ with st.sidebar:
     peso_kg = st.number_input("Peso corridore (kg)", 40.0, 100.0, 72.0, 0.5)
     rolling_s = st.number_input("Media mobile (secondi)", 1, 300, 3, 1,
                                 help="Default 3 sec — è quello che Gaia usa in App4.3.")
-    min_run_s = st.number_input("Durata minima superamento (sec)", 1, 60, 3, 1,
-                                help="Un superamento è considerato tale solo se dura almeno "
-                                     "questo numero di secondi consecutivi sopra soglia. "
-                                     "Filtra gli spike brevi (default 3).")
+    min_run_s = st.number_input("Durata minima superamento (sec)", 0, 60, 0, 1,
+                                help="Un superamento viene contato solo se dura almeno "
+                                     "questo numero di secondi consecutivi. "
+                                     "Con 0 = comportamento identico ad App4.3 (nessun filtro). "
+                                     "Con 3 = filtra gli spike < 3 sec.")
 
     st.subheader("Soglie W/kg")
     modo_soglie = st.radio(
