@@ -58,8 +58,57 @@ def _check_login() -> bool:
 if not _check_login():
     st.stop()
 
+# ────────────────────────── TIER & DELIVERABLES ──────────────────────────
+# I tier disponibili (in ordine crescente di accesso).
+# Deliverable unlocked per tier: definito nella mappa qui sotto.
+DELIVERABLES_BY_TIER = {
+    # tesi (una tantum)
+    "base":        set(),
+    "plus":        {"manuale_pdf"},
+    "premium":     {"manuale_pdf", "report_metodologico"},
+    # accademico (annuale)
+    "starter":     set(),
+    "team":        {"manuale_pdf"},
+    "dipartimento": {"manuale_pdf", "report_metodologico"},
+}
+
+def _user_tier() -> str:
+    """Ritorna il tier dell'utente loggato (default 'premium' per l'utente originale Gaia)."""
+    try:
+        tiers = st.secrets.get("tiers", {})
+    except Exception:
+        tiers = {}
+    user = st.session_state.get("auth_user", "")
+    return tiers.get(user, "premium")
+
+def _has_deliverable(name: str) -> bool:
+    return name in DELIVERABLES_BY_TIER.get(_user_tier(), set())
+
+
 st.title("🚴 FIT Analyzer - Tesi Gaia")
 st.caption("Carica uno o più file .fit, calcola in un colpo TUTTE le soglie W/kg per TUTTI i tratti.")
+
+# ────────────────────────── MATERIALI DEL PACCHETTO ──────────────────────────
+with st.sidebar:
+    st.subheader("🎓 Materiali del tuo pacchetto")
+    tier_attivo = _user_tier()
+    st.caption(f"Pacchetto attivo: **{tier_attivo.capitalize()}**")
+
+    if _has_deliverable("manuale_pdf"):
+        try:
+            with open("deliverables/manuale_fit_analyzer.pdf", "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                "📘 Scarica il manuale (PDF)",
+                pdf_bytes,
+                file_name="Manuale_FIT_Analyzer.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        except FileNotFoundError:
+            st.warning("Manuale non trovato. Contatta il supporto.")
+    else:
+        st.info("🔒 Il manuale PDF è incluso nei pacchetti Plus, Premium, Team, Dipartimento.")
 
 # ────────────────────────── ARCHIVIO SIDEBAR ──────────────────────────
 with st.sidebar:
