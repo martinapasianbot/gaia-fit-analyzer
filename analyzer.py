@@ -152,3 +152,26 @@ def analyze_fit(
 def default_soglie() -> list[float]:
     """3.5, 4.0, 4.5, ..., 8.0 W/kg"""
     return [round(x, 2) for x in np.arange(3.5, 8.5, 0.5)]
+
+
+def extract_route(fit_bytes: bytes) -> pd.DataFrame:
+    """Estrae il percorso GPS dal .fit.
+
+    Ritorna DataFrame con colonne: timestamp, position_lat, position_long (semicircles),
+    lat_deg, lon_deg (gradi decimali). Solo record con GPS valido.
+    """
+    df = _fit_to_records_df(fit_bytes)
+    df = df.dropna(subset=["position_lat", "position_long"]).copy()
+    if df.empty:
+        return df
+    df["lat_deg"] = df["position_lat"].astype(float) / SEMI_PER_DEG
+    df["lon_deg"] = df["position_long"].astype(float) / SEMI_PER_DEG
+    return df[["timestamp", "position_lat", "position_long", "lat_deg", "lon_deg"]].reset_index(drop=True)
+
+
+def points_in_tratto(route_df: pd.DataFrame, tratto: Tratto) -> pd.DataFrame:
+    """Ritorna i record del percorso che cadono nel bounding box del tratto (con tolleranza)."""
+    if route_df.empty:
+        return route_df
+    mask = _mark_inside(route_df, tratto)
+    return route_df.loc[mask].reset_index(drop=True)

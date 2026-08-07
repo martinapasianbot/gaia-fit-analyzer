@@ -15,7 +15,15 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-from analyzer import Tratto, analyze_fit, default_soglie, deg_to_semi, semi_to_deg
+from analyzer import (
+    Tratto,
+    analyze_fit,
+    default_soglie,
+    deg_to_semi,
+    extract_route,
+    points_in_tratto,
+    semi_to_deg,
+)
 import storage
 
 st.set_page_config(page_title="FIT Analyzer - Tesi Gaia", page_icon="🚴", layout="wide")
@@ -183,6 +191,102 @@ st.caption("Puoi caricare più file insieme. Nome file consigliato: `qualsiasi__
 
 uploads = st.file_uploader("Trascina qui i file .fit", type=["fit"], accept_multiple_files=True)
 
+# ────────────────────────── ANTEPRIMA MAPPA TRATTI ──────────────────────────
+if uploads:
+    with st.expander("🗺️ Anteprima mappa tratti (verifica coordinate)", expanded=False):
+        st.caption(
+            "Mostra il percorso della gara (blu) con sopra i punti che cadono dentro "
+            "il bounding box di ogni tratto e i cerchietti sui GPS start/end che hai inserito. "
+            "Usa questa vista per capire se i tratti agganciano il percorso — se non vedi punti "
+            "colorati sul tratto, aumenta la tolleranza GPS o correggi le coordinate."
+        )
+        file_names = [u.name for u in uploads]
+        sel_idx = st.selectbox(
+            "File da visualizzare",
+            range(len(uploads)),
+            format_func=lambda i: file_names[i],
+            key="map_file_sel",
+        )
+        sel_bytes = uploads[sel_idx].getvalue()
+        try:
+            route_df = extract_route(sel_bytes)
+        except Exception as e:
+            st.error(f"Errore lettura .fit: {e}")
+            route_df = None
+
+        if route_df is None or route_df.empty:
+            st.warning("Nessun dato GPS nel file selezionato.")
+        else:
+            # subsample se troppo denso (folium fatica sopra i 10k punti)
+            route_plot = route_df
+            if len(route_plot) > 8000:
+                step = len(route_plot) // 8000 + 1
+                route_plot = route_plot.iloc[::step].reset_index(drop=True)
+
+            import folium
+            from streamlit_folium import st_folium
+
+            center = [route_plot["lat_deg"].mean(), route_plot["lon_deg"].mean()]
+            fmap = folium.Map(location=center, zoom_start=10, tiles="OpenStreetMap")
+
+            # percorso completo in blu
+            folium.PolyLine(
+                route_plot[["lat_deg", "lon_deg"]].values.tolist(),
+                color="#1f77ff", weight=3, opacity=0.7, tooltip="Percorso gara",
+            ).add_to(fmap)
+
+            colori_tratti = ["#e6194B", "#f58231", "#3cb44b", "#911eb4"]
+            for i, t in enumerate(tratti):
+                col = colori_tratti[i % len(colori_tratti)]
+                matched = points_in_tratto(route_df, t)
+                if not matched.empty:
+                    matched_plot = matched
+                    if len(matched_plot) > 3000:
+                        step = len(matched_plot) // 3000 + 1
+                        matched_plot = matched_plot.iloc[::step].reset_index(drop=True)
+                    folium.PolyLine(
+                        matched_plot[["lat_deg", "lon_deg"]].values.tolist(),
+                        color=col, weight=7, opacity=0.9,
+                        tooltip=f"{t.nome} — {len(matched)} punti nel bbox",
+                    ).add_to(fmap)
+
+                # cerchietti sui GPS inseriti dall'utente (semi → deg)
+                lat_s_deg = semi_to_deg(t.lat_start)
+                lon_s_deg = semi_to_deg(t.long_start)
+                lat_e_deg = semi_to_deg(t.lat_end)
+                lon_e_deg = semi_to_deg(t.long_end)
+                if lat_s_deg or lon_s_deg:
+                    folium.CircleMarker(
+                        [lat_s_deg, lon_s_deg], radius=9, color=col, weight=3,
+                        fill=True, fill_color="white", fill_opacity=0.9,
+                        tooltip=f"{t.nome} — START ({lat_s_deg:.5f}, {lon_s_deg:.5f})",
+                    ).add_to(fmap)
+                if lat_e_deg or lon_e_deg:
+                    folium.CircleMarker(
+                        [lat_e_deg, lon_e_deg], radius=9, color=col, weight=3,
+                        fill=True, fill_color="black", fill_opacity=0.9,
+                        tooltip=f"{t.nome} — END ({lat_e_deg:.5f}, {lon_e_deg:.5f})",
+                    ).add_to(fmap)
+
+            # legenda testuale sopra la mappa
+            legenda = " · ".join(
+                [f"<span style='color:{colori_tratti[i%len(colori_tratti)]}'>■</span> {t.nome}"
+                 for i, t in enumerate(tratti)]
+            )
+            st.markdown(
+                f"<small>🔵 percorso gara · {legenda} · ⚪ start · ⚫ end</small>",
+                unsafe_allow_html=True,
+            )
+            st_folium(fmap, height=550, use_container_width=True, returned_objects=[])
+
+            # riepilogo aggancio
+            riepilogo = []
+            for t in tratti:
+                n = len(points_in_tratto(route_df, t))
+                riepilogo.append({"tratto": t.nome, "punti nel bbox": n,
+                                  "stato": "✅" if n > 0 else "⚠️ nessun punto"})
+            st.dataframe(pd.DataFrame(riepilogo), use_container_width=True, hide_index=True)
+
 if st.button("🚀 Analizza tutto", type="primary", disabled=not uploads):
     all_dfs = []
     prog = st.progress(0, text="Analisi in corso…")
@@ -196,7 +300,7 @@ if st.button("🚀 Analizza tutto", type="primary", disabled=not uploads):
 
         try:
             df = analyze_fit(
-                fit_bytes=up.read(),
+                fit_bytes=up.getvalue(),
                 corridore=corridore_name,
                 gara=gara or "N/A",
                 anno=int(anno),
