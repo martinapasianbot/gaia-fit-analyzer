@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -27,6 +28,39 @@ from analyzer import (
 import storage
 
 st.set_page_config(page_title="FIT Analyzer - Tesi Gaia", page_icon="🚴", layout="wide")
+
+# ────────────────────────── MANUTENZIONE PROGRAMMATA ──────────────────────────
+# L'app resta offline fino a questo istante (Europe/Rome), poi si riattiva da sola.
+# Per anticipare/posticipare basta cambiare la data qui sotto e fare push.
+MAINTENANCE_UNTIL = datetime(2026, 8, 8, 17, 0, tzinfo=ZoneInfo("Europe/Rome"))
+
+_now_rome = datetime.now(tz=ZoneInfo("Europe/Rome"))
+if _now_rome < MAINTENANCE_UNTIL:
+    st.markdown(
+        f"""
+        <div style="max-width: 640px; margin: 6rem auto; padding: 3rem;
+                    background: #12121a; border: 1px solid rgba(212, 255, 58, 0.25);
+                    border-radius: 20px; text-align: center; font-family: 'Inter', sans-serif;">
+            <div style="color: #d4ff3a; font-family: 'JetBrains Mono', monospace;
+                        font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.15em;
+                        margin-bottom: 1.5rem;">→ Manutenzione programmata</div>
+            <h1 style="color: #f5f5f7; font-size: 2.4rem; margin-bottom: 1.5rem;
+                       line-height: 1.15; font-weight: 700;">
+                Torniamo online il<br>
+                <span style="color: #d4ff3a;">{MAINTENANCE_UNTIL.strftime('%d/%m alle %H:%M')}</span>
+            </h1>
+            <p style="color: #a0a0b0; font-size: 1.1rem; line-height: 1.5; margin-bottom: 2rem;">
+                Il tool è temporaneamente offline per un aggiornamento.
+                Ci vediamo domani pomeriggio.
+            </p>
+            <p style="color: #6b6b7a; font-size: 0.9rem;">
+                Per urgenze: <a href="mailto:martinapasianbot@gmail.com" style="color: #d4ff3a; text-decoration: none;">martinapasianbot@gmail.com</a>
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.stop()
 
 
 def _check_login() -> bool:
