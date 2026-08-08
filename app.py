@@ -38,15 +38,11 @@ _now_rome = datetime.now(tz=ZoneInfo("Europe/Rome"))
 if _now_rome < MAINTENANCE_UNTIL:
     st.markdown(
         """
-        <div style="max-width: 640px; margin: 6rem auto; padding: 3rem;
-                    background: #12121a; border: 1px solid rgba(212, 255, 58, 0.25);
-                    border-radius: 20px; text-align: center; font-family: 'Inter', sans-serif;">
-            <div style="color: #d4ff3a; font-family: 'JetBrains Mono', monospace;
-                        font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.15em;
-                        margin-bottom: 1.5rem;">→ Manutenzione in corso</div>
-            <h1 style="color: #f5f5f7; font-size: 2.4rem; margin-bottom: 0;
+        <div style="max-width: 640px; margin: 8rem auto; padding: 3rem;
+                    text-align: center; font-family: 'Inter', sans-serif;">
+            <h1 style="color: #f5f5f7; font-size: 2.4rem; margin: 0;
                        line-height: 1.15; font-weight: 700;">
-                Il tool è temporaneamente <span style="color: #d4ff3a;">offline</span>.
+                sito inesistente
             </h1>
         </div>
         """,
