@@ -32,7 +32,7 @@ st.set_page_config(page_title="FIT Analyzer - Tesi Gaia", page_icon="🚴", layo
 # ────────────────────────── MANUTENZIONE PROGRAMMATA ──────────────────────────
 # L'app resta offline fino a questo istante (Europe/Rome), poi si riattiva da sola.
 # Per anticipare/posticipare basta cambiare la data qui sotto e fare push.
-MAINTENANCE_UNTIL = datetime(2026, 8, 8, 17, 0, tzinfo=ZoneInfo("Europe/Rome"))
+MAINTENANCE_UNTIL = datetime(2099, 12, 31, 23, 59, tzinfo=ZoneInfo("Europe/Rome"))
 
 _now_rome = datetime.now(tz=ZoneInfo("Europe/Rome"))
 if _now_rome < MAINTENANCE_UNTIL:
