@@ -113,28 +113,6 @@ def _has_deliverable(name: str) -> bool:
 st.title("🚴 FIT Analyzer - Tesi Gaia")
 st.caption("Carica uno o più file .fit, calcola in un colpo TUTTE le soglie W/kg per TUTTI i tratti.")
 
-# ────────────────────────── MATERIALI DEL PACCHETTO ──────────────────────────
-with st.sidebar:
-    st.subheader("🎓 Materiali del tuo pacchetto")
-    tier_attivo = _user_tier()
-    st.caption(f"Pacchetto attivo: **{tier_attivo.capitalize()}**")
-
-    if _has_deliverable("manuale_pdf"):
-        try:
-            with open("deliverables/manuale_fit_analyzer.pdf", "rb") as f:
-                pdf_bytes = f.read()
-            st.download_button(
-                "📘 Scarica il manuale (PDF)",
-                pdf_bytes,
-                file_name="Manuale_FIT_Analyzer.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-            )
-        except FileNotFoundError:
-            st.warning("Manuale non trovato. Contatta il supporto.")
-    else:
-        st.info("🔒 Il manuale PDF è incluso nei pacchetti Plus, Premium, Team, Dipartimento.")
-
 # ────────────────────────── ARCHIVIO SIDEBAR ──────────────────────────
 with st.sidebar:
     st.divider()
