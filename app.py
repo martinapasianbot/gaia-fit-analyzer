@@ -42,7 +42,7 @@ if _now_rome < MAINTENANCE_UNTIL:
                     text-align: center; font-family: 'Inter', sans-serif;">
             <h1 style="color: #f5f5f7; font-size: 2.4rem; margin: 0 0 1rem 0;
                        line-height: 1.15; font-weight: 700;">
-                sito inesistente
+                Sito inesistente.
             </h1>
             <p style="color: #a0a0b0; font-size: 1.05rem; margin: 0; line-height: 1.5;">
                 Nessun contenuto disponibile a questo indirizzo.
